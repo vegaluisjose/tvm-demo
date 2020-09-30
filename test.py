@@ -109,9 +109,9 @@ def partition(mod, compiler, op):
     return mod
 
 
-def compile_prog(mod):
+def compile_prog(mod, params=None):
     with relay.build_config(opt_level=3):
-        exe = relay.vm.compile(mod, target="llvm", params=None)
+        exe = relay.vm.compile(mod, target="llvm", params=params)
         code, lib = exe.save()
         lib = update_lib(lib)
         return runtime.vm.Executable.load_exec(code, lib)
