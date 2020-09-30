@@ -112,15 +112,19 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     std::string func_name = ext_func_id_ + "_" + std::to_string(func_idx++);
 
     // Make function declaration
-    macro_stream << "CSOURCE_BINARY_OP_" << call->args.size() << "D(" << func_name << ", ";
+    if (IsOp(call, "nn.bias_add")) {
+      macro_stream << "CSOURCE_BIAS_ADD(" << func_name;
+    } else {
+      macro_stream << "CSOURCE_BINARY_OP_" << call->args.size() << "D(" << func_name << ", ";
+    }
 
-    if (IsOp(call, "add") || IsOp(call, "nn.bias_add")) {
+    if (IsOp(call, "add")) {
       macro_stream << "+";
     } else if (IsOp(call, "subtract")) {
       macro_stream << "-";
     } else if (IsOp(call, "multiply")) {
       macro_stream << "*";
-    } else {
+    } else if (!IsOp(call, "nn.bias_add")) {
       LOG(FATAL) << "Unrecognized op";
     }
 
@@ -247,12 +251,22 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
         }                                                              \
       }
 
-    #define CSOURCE_BINARY_OP_2D(p_ID_, p_OP_, p_DIM1_, p_DIM2_, p_DIM3_, p_DIM4_, p_DTYPE)  \
+    #define CSOURCE_BINARY_OP_2D(p_ID_, p_OP_, p_DIM1_, p_DIM2_, p_DTYPE)  \
+      extern "C" void p_ID_(p_DTYPE* a, p_DTYPE* b, p_DTYPE* out) {        \
+        for (int64_t i = 0; i < p_DIM1_; ++i) {                            \
+          for (int64_t j = 0; j < p_DIM2_; ++j) {                          \
+            int64_t k = i * p_DIM2_ + j;                                   \
+            out[k] = a[k] p_OP_ b[k];                                      \
+          }                                                                \
+        }                                                                  \
+      }
+
+    #define CSOURCE_BIAS_ADD(p_ID_, p_DIM1_, p_DIM2_, p_DIM3_, p_DIM4_, p_DTYPE)             \
       extern "C" void p_ID_(p_DTYPE* a, p_DTYPE* b, p_DTYPE* out) {                          \
         for (int64_t i = 0; i < (p_DIM1_ * p_DIM2_ * p_DIM3_); ++i) {                        \
           for (int64_t j = 0; j < p_DIM4_; ++j) {                                            \
             int64_t k = i * p_DIM4_ + j;                                                     \
-            out[k] = a[k] p_OP_ b[j];                                                        \
+            out[k] = a[k] + b[j];                                                            \
           }                                                                                  \
         }                                                                                    \
       }

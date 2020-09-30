@@ -103,8 +103,8 @@ def prog_add(shape, dtype):
     return mod
 
 
-def partition(mod, compiler):
-    mod = WhiteListAnnotator(["nn.bias_add"], compiler)(mod)
+def partition(mod, compiler, op):
+    mod = WhiteListAnnotator([op], compiler)(mod)
     mod = transform.PartitionGraph()(mod)
     return mod
 
@@ -143,7 +143,7 @@ def test_add(compiler):
     dtype = "int32"
     shape = (8, 8)
     mod = prog_add(shape, dtype)
-    mod = partition(mod, compiler)
+    mod = partition(mod, compiler, "add")
     exe = compile_prog(mod)
     run_add(exe, shape, dtype)
 
@@ -153,7 +153,7 @@ def test_bias_add(compiler):
     xshape = (1, 112, 112, 32)
     bshape = (32,)
     mod = prog_bias_add(xshape, bshape, dtype)
-    mod = partition(mod, compiler)
+    mod = partition(mod, compiler, "nn.bias_add")
     exe = compile_prog(mod)
     run_bias_add(exe, xshape, bshape, dtype)
 
