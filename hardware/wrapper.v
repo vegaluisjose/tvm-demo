@@ -14,9 +14,9 @@ module wrapper (
         logic [31:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = testbench.dut.a;
+            tmp[0+:32] = wrapper.dut.ra;
             tmp[addr*32+:32] = value;
-            testbench.dut.a = tmp[0+:8];
+            wrapper.dut.ra = tmp[0+:32];
         end
     endfunction
 
@@ -25,7 +25,7 @@ module wrapper (
         logic [32-1:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = testbench.dut.a;
+            tmp[0+:32] = wrapper.dut.ra;
             return tmp[addr*32+:32];
         end
     endfunction
@@ -36,9 +36,9 @@ module wrapper (
         logic [31:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = testbench.dut.b;
+            tmp[0+:32] = wrapper.dut.rb;
             tmp[addr*32+:32] = value;
-            testbench.dut.a = tmp[0+:8];
+            wrapper.dut.rb = tmp[0+:32];
         end
     endfunction
 
@@ -47,20 +47,20 @@ module wrapper (
         logic [32-1:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = testbench.dut.b;
+            tmp[0+:32] = wrapper.dut.rb;
             return tmp[addr*32+:32];
         end
     endfunction
 
     function void write_reg_y;
-        input input value;
-        input input addr;
+        input int value;
+        input int addr;
         logic [31:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = testbench.dut.y;
+            tmp[0+:32] = wrapper.dut.ry;
             tmp[addr*32+:32] = value;
-            testbench.dut.y = tmp[0+:8];
+            wrapper.dut.ry = tmp[0+:32];
         end
     endfunction
 
@@ -69,7 +69,7 @@ module wrapper (
         logic [32-1:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = testbench.dut.y;
+            tmp[0+:32] = wrapper.dut.ry;
             return tmp[addr*32+:32];
         end
     endfunction
@@ -79,17 +79,17 @@ module wrapper (
             32'd0 : out = 32'hdeadbeef;
             32'd1 : begin
                 case(id)
-                    32'd0 : write_reg_a(in, mask);
-                    32'd1 : write_reg_b(in, mask);
-                    32'd2 : write_reg_y(in, mask);
+                    32'd0 : write_reg_a(in, addr);
+                    32'd1 : write_reg_b(in, addr);
+                    32'd2 : write_reg_y(in, addr);
                     default : $error("invalid id");
                 endcase
             end
             32'd2 : begin
                 case(id)
-                    32'd0 : out = read_reg_a(mask);
-                    32'd1 : out = read_reg_b(mask);
-                    32'd2 : out = read_reg_y(mask);
+                    32'd0 : out = read_reg_a(addr);
+                    32'd1 : out = read_reg_b(addr);
+                    32'd2 : out = read_reg_y(addr);
                     default : $error("invalid id");
                 endcase
             end
