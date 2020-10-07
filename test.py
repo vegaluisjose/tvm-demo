@@ -21,6 +21,7 @@ import sys
 
 import numpy as np
 
+import tflite
 import tvm
 import tvm.relay.testing
 import tvm.relay.op as reg
@@ -33,6 +34,7 @@ from tvm.relay.expr_functor import ExprMutator
 from tvm.relay.op.annotation import compiler_begin, compiler_end
 from tvm.relay.op.contrib.register import get_pattern_table
 from tvm.relay.build_module import bind_params_by_name
+from tvm.contrib.download import download_testdata
 
 
 # Leverage the pass manager to write a simple white list based annotator
@@ -84,14 +86,16 @@ def update_lib(lib):
     return lib
 
 
-def build_bias_add_program(xshape, bshape, dtype):
-    x = relay.var("x", shape=xshape, dtype=dtype)
-    bias = relay.var("bias", shape=bshape, dtype=dtype)
-    z = relay.nn.bias_add(x, bias, axis=3)
-    f = relay.Function([x, bias], z)
-    mod = tvm.IRModule()
-    mod["main"] = f
-    return mod
+def extract(path):
+    import tarfile
+
+    if path.endswith("tgz") or path.endswith("gz"):
+        dir_path = os.path.dirname(path)
+        tar = tarfile.open(path)
+        tar.extractall(path=dir_path)
+        tar.close()
+    else:
+        raise RuntimeError("Could not decompress the file: " + path)
 
 
 def build_add_program(shape, dtype):
@@ -102,6 +106,38 @@ def build_add_program(shape, dtype):
     mod = tvm.IRModule()
     mod["main"] = f
     return mod
+
+
+def build_bias_add_program(xshape, bshape, dtype):
+    x = relay.var("x", shape=xshape, dtype=dtype)
+    bias = relay.var("bias", shape=bshape, dtype=dtype)
+    z = relay.nn.bias_add(x, bias, axis=3)
+    f = relay.Function([x, bias], z)
+    mod = tvm.IRModule()
+    mod["main"] = f
+    return mod
+
+
+def get_mobilenet():
+    input_tensor = "input"
+    input_shape = (1, 224, 224, 3)
+    input_dtype = "int8"
+    model_url = "http://download.tensorflow.org/models/mobilenet_v1_2018_08_02/mobilenet_v1_1.0_224_quant.tgz"
+    model_path = download_testdata(
+        model_url, "mobilenet_v1_1.0_224_quant.tgz", module=["tf", "official"]
+    )
+    model_dir = os.path.dirname(model_path)
+    extract(model_path)
+    tflite_model_file = os.path.join(
+        model_dir, "mobilenet_v1_1.0_224_quant.tflite"
+    )
+    tflite_model_buf = open(tflite_model_file, "rb").read()
+    tflite_model = tflite.Model.GetRootAsModel(tflite_model_buf, 0)
+    return relay.frontend.from_tflite(
+        tflite_model,
+        shape_dict={input_tensor: input_shape},
+        dtype_dict={input_tensor: input_dtype},
+    )
 
 
 def partition(mod, compiler, op):
@@ -164,3 +200,5 @@ if __name__ == "__main__":
     compiler = "ccompiler"
     test_add(compiler)
     test_bias_add(compiler)
+    mod, param = get_mobilenet()
+    print(mod)
