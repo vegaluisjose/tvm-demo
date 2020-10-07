@@ -71,9 +71,10 @@ def update_lib(lib):
     test_dir = os.path.dirname(os.path.realpath(os.path.expanduser(__file__)))
     source_dir = os.path.join(test_dir, "..", "..", "..")
     contrib_path = os.path.join(source_dir, "src", "runtime", "contrib")
+    accel_opts = ["-I" + test_dir, os.path.join(test_dir, "reference.cc")]
 
     kwargs = {}
-    kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path]
+    kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path] + accel_opts
     tmp_path = util.tempdir()
     lib_name = "lib.so"
     lib_path = tmp_path.relpath(lib_name)

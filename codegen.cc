@@ -240,6 +240,7 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
     code_stream_ << "#include <tvm/runtime/container.h>\n";
     code_stream_ << "#include <tvm/runtime/packed_func.h>\n";
     code_stream_ << "#include <dlpack/dlpack.h>\n";
+    code_stream_ << "#include \"accel.h\"\n";
     code_stream_ << "using namespace tvm::runtime;\n";
 
     // Append some common macro for operator definition.
@@ -261,14 +262,11 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
         }                                                                  \
       }
 
-    #define CSOURCE_BIAS_ADD(p_ID_, p_DIM1_, p_DIM2_, p_DIM3_, p_DIM4_, p_DTYPE)             \
-      extern "C" void p_ID_(p_DTYPE* a, p_DTYPE* b, p_DTYPE* out) {                          \
-        for (int64_t i = 0; i < (p_DIM1_ * p_DIM2_ * p_DIM3_); ++i) {                        \
-          for (int64_t j = 0; j < p_DIM4_; ++j) {                                            \
-            int64_t k = i * p_DIM4_ + j;                                                     \
-            out[k] = a[k] + b[j];                                                            \
-          }                                                                                  \
-        }                                                                                    \
+    #define CSOURCE_BIAS_ADD(p_ID_, p_DIM1_, p_DIM2_, p_DIM3_, p_DIM4_, p_DTYPE)   \
+      extern "C" void p_ID_(p_DTYPE* a, p_DTYPE* b, p_DTYPE* out) {                \
+        int out_dim = p_DIM1_ * p_DIM2_ * p_DIM3_;                                 \
+        int in_dim = p_DIM4_;                                                      \
+        bias_add(a, b, out, out_dim, in_dim);                                      \
       }
     )op_macro";
 
