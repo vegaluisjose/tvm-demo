@@ -84,7 +84,7 @@ def update_lib(lib):
     return lib
 
 
-def prog_bias_add(xshape, bshape, dtype):
+def build_bias_add_program(xshape, bshape, dtype):
     x = relay.var("x", shape=xshape, dtype=dtype)
     bias = relay.var("bias", shape=bshape, dtype=dtype)
     z = relay.nn.bias_add(x, bias, axis=3)
@@ -94,7 +94,7 @@ def prog_bias_add(xshape, bshape, dtype):
     return mod
 
 
-def prog_add(shape, dtype):
+def build_add_program(shape, dtype):
     x = relay.var("x", shape=shape, dtype=dtype)
     y = relay.var("y", shape=shape, dtype=dtype)
     z = x + y
@@ -143,7 +143,7 @@ def run_bias_add(exe, xshape, bshape, dtype):
 def test_add(compiler):
     dtype = "int32"
     shape = (8, 8)
-    mod = prog_add(shape, dtype)
+    mod = build_add_program(shape, dtype)
     mod = partition(mod, compiler, "add")
     exe = compile_prog(mod)
     run_add(exe, shape, dtype)
@@ -153,7 +153,7 @@ def test_bias_add(compiler):
     dtype = "int32"
     xshape = (1, 112, 112, 32)
     bshape = (32,)
-    mod = prog_bias_add(xshape, bshape, dtype)
+    mod = build_bias_add_program(xshape, bshape, dtype)
     mod = partition(mod, compiler, "nn.bias_add")
     exe = compile_prog(mod)
     run_bias_add(exe, xshape, bshape, dtype)
