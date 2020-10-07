@@ -17,4 +17,5 @@ compile_cc: compile_verilog
 	out/Top__Slow.cpp \
 	out/Top__Syms.cpp \
 	out/Top.cpp \
-	device.cc
+	device.cc \
+	test.cc
