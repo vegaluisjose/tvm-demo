@@ -132,6 +132,7 @@ def run_add(exe, shape, dtype):
     inputs = {"x": x_data, "y": y_data}
     run(exe, inputs, ref)
 
+
 def run_bias_add(exe, xshape, bshape, dtype):
     x_data = np.random.randint(5, size=xshape, dtype=dtype)
     bias_data = np.random.randint(5, size=bshape, dtype=dtype)
