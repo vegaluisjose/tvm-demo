@@ -153,8 +153,7 @@ def compile_prog(mod, params=None):
 def run(exe, inputs, ref):
     ctx = tvm.cpu()
     vm = runtime.vm.VirtualMachine(exe, ctx)
-    out = vm.run(**inputs)
-    tvm.testing.assert_allclose(out.asnumpy(), ref, rtol=1e-5, atol=1e-5)
+    return vm.run(**inputs)
 
 
 def run_add(exe, shape, dtype):
@@ -162,7 +161,8 @@ def run_add(exe, shape, dtype):
     y_data = np.random.randint(5, size=shape, dtype=dtype)
     ref = x_data + y_data
     inputs = {"x": x_data, "y": y_data}
-    run(exe, inputs, ref)
+    out = run(exe, inputs, ref)
+    tvm.testing.assert_allclose(out.asnumpy(), ref, rtol=1e-5, atol=1e-5)
 
 
 def run_bias_add(exe, xshape, bshape, dtype):
@@ -170,7 +170,12 @@ def run_bias_add(exe, xshape, bshape, dtype):
     bias_data = np.random.randint(5, size=bshape, dtype=dtype)
     ref = x_data + bias_data.reshape((1, 1, bshape[0]))
     inputs = {"x": x_data, "bias": bias_data}
-    run(exe, inputs, ref)
+    out = run(exe, inputs, ref)
+    tvm.testing.assert_allclose(out.asnumpy(), ref, rtol=1e-5, atol=1e-5)
+
+
+def run_mobilenet(exe, shape, dtype):
+    i_data = np.random.randint(5, size=shape, dtype=dtype)
 
 
 def test_add(compiler):
@@ -196,7 +201,8 @@ def test_mobilenet(compiler):
     dtype = "int8"
     shape = (1, 224, 224, 3)
     mod, param = get_mobilenet(shape, dtype)
-    print(mod)
+    exe = compile_prog(mod, param)
+    run_mobilenet(exe, shape, dtype)
 
 
 if __name__ == "__main__":
