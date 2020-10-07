@@ -116,10 +116,8 @@ def build_bias_add_program(xshape, bshape, dtype):
     return mod
 
 
-def get_mobilenet():
+def get_mobilenet(shape, dtype):
     input_tensor = "input"
-    input_shape = (1, 224, 224, 3)
-    input_dtype = "int8"
     model_url = "http://download.tensorflow.org/models/mobilenet_v1_2018_08_02/mobilenet_v1_1.0_224_quant.tgz"
     model_path = download_testdata(
         model_url, "mobilenet_v1_1.0_224_quant.tgz", module=["tf", "official"]
@@ -133,8 +131,8 @@ def get_mobilenet():
     tflite_model = tflite.Model.GetRootAsModel(tflite_model_buf, 0)
     return relay.frontend.from_tflite(
         tflite_model,
-        shape_dict={input_tensor: input_shape},
-        dtype_dict={input_tensor: input_dtype},
+        shape_dict={input_tensor: shape},
+        dtype_dict={input_tensor: dtype},
     )
 
 
@@ -194,9 +192,15 @@ def test_bias_add(compiler):
     run_bias_add(exe, xshape, bshape, dtype)
 
 
+def test_mobilenet(compiler):
+    dtype = "int8"
+    shape = (1, 224, 224, 3)
+    mod, param = get_mobilenet(shape, dtype)
+    print(mod)
+
+
 if __name__ == "__main__":
     compiler = "ccompiler"
     test_add(compiler)
     test_bias_add(compiler)
-    mod, param = get_mobilenet()
-    print(mod)
+    test_mobilenet(compiler)
