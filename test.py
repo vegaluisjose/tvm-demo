@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for graph partitioning."""
-# pylint: disable=not-callable
+
 import os
 import sys
 
@@ -37,7 +36,6 @@ from tvm.relay.build_module import bind_params_by_name
 from tvm.contrib.download import download_testdata
 
 
-# Leverage the pass manager to write a simple white list based annotator
 @transform.function_pass(opt_level=0)
 class WhiteListAnnotator:
     def __init__(self, op_list, compiler):
