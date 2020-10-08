@@ -16,7 +16,6 @@
 # under the License.
 
 import os
-import sys
 
 import numpy as np
 
@@ -96,16 +95,6 @@ def extract(path):
         raise RuntimeError("Could not decompress the file: " + path)
 
 
-def build_add_program(shape, dtype):
-    x = relay.var("x", shape=shape, dtype=dtype)
-    y = relay.var("y", shape=shape, dtype=dtype)
-    z = x + y
-    f = relay.Function([x, y], z)
-    mod = tvm.IRModule()
-    mod["main"] = f
-    return mod
-
-
 def build_bias_add_program(xshape, bshape, dtype):
     x = relay.var("x", shape=xshape, dtype=dtype)
     bias = relay.var("bias", shape=bshape, dtype=dtype)
@@ -156,15 +145,6 @@ def run(exe, inputs):
     return vm.run(**inputs)
 
 
-def run_add(exe, shape, dtype):
-    x_data = np.random.randint(5, size=shape, dtype=dtype)
-    y_data = np.random.randint(5, size=shape, dtype=dtype)
-    ref = x_data + y_data
-    inputs = {"x": x_data, "y": y_data}
-    out = run(exe, inputs)
-    tvm.testing.assert_allclose(out.asnumpy(), ref, rtol=1e-5, atol=1e-5)
-
-
 def run_bias_add(exe, xshape, bshape, dtype):
     x_data = np.random.randint(5, size=xshape, dtype=dtype)
     bias_data = np.random.randint(5, size=bshape, dtype=dtype)
@@ -182,15 +162,6 @@ def run_mobilenet(exe0, exe1, shape, dtype):
     tvm.testing.assert_allclose(
         out0.asnumpy(), out1.asnumpy(), rtol=1e-5, atol=1e-5
     )
-
-
-def test_add(compiler):
-    dtype = "int32"
-    shape = (8, 8)
-    mod = build_add_program(shape, dtype)
-    mod = partition(mod, compiler, "add")
-    exe = compile_prog(mod)
-    run_add(exe, shape, dtype)
 
 
 def test_bias_add(compiler):
@@ -215,6 +186,5 @@ def test_mobilenet(compiler):
 
 if __name__ == "__main__":
     compiler = "ccompiler"
-    test_add(compiler)
     test_bias_add(compiler)
     test_mobilenet(compiler)
