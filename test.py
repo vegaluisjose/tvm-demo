@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import os
+from os import path
 
 import numpy as np
 
@@ -67,10 +67,10 @@ class WhiteListAnnotator:
 
 
 def update_lib(lib):
-    test_dir = os.path.dirname(os.path.realpath(os.path.expanduser(__file__)))
-    source_dir = os.path.join(test_dir, "..", "..", "..")
-    contrib_path = os.path.join(source_dir, "src", "runtime", "contrib")
-    accel_opts = ["-I" + test_dir, os.path.join(test_dir, "reference.cc")]
+    test_dir = path.dirname(path.realpath(path.expanduser(__file__)))
+    source_dir = path.join(test_dir, "..", "..", "..")
+    contrib_path = path.join(source_dir, "src", "runtime", "contrib")
+    accel_opts = ["-I" + test_dir, path.join(test_dir, "reference.cc")]
 
     kwargs = {}
     kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path] + accel_opts
@@ -83,16 +83,16 @@ def update_lib(lib):
     return lib
 
 
-def extract(path):
+def extract(file):
     import tarfile
 
-    if path.endswith("tgz") or path.endswith("gz"):
-        dir_path = os.path.dirname(path)
-        tar = tarfile.open(path)
+    if file.endswith("tgz") or file.endswith("gz"):
+        dir_path = path.dirname(file)
+        tar = tarfile.open(file)
         tar.extractall(path=dir_path)
         tar.close()
     else:
-        raise RuntimeError("Could not decompress the file: " + path)
+        raise RuntimeError("Could not decompress the file: " + file)
 
 
 def build_bias_add_program(xshape, bshape, dtype):
@@ -111,9 +111,9 @@ def get_mobilenet(shape, dtype):
     model_path = download_testdata(
         model_url, "mobilenet_v1_1.0_224_quant.tgz", module=["tf", "official"]
     )
-    model_dir = os.path.dirname(model_path)
+    model_dir = path.dirname(model_path)
     extract(model_path)
-    tflite_model_file = os.path.join(
+    tflite_model_file = path.join(
         model_dir, "mobilenet_v1_1.0_224_quant.tflite"
     )
     tflite_model_buf = open(tflite_model_file, "rb").read()
