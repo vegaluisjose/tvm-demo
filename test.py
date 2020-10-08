@@ -16,8 +16,8 @@
 # under the License.
 
 from os import path
-
 import numpy as np
+import subprocess as sp
 
 import tflite
 import tvm
@@ -64,6 +64,33 @@ class WhiteListAnnotator:
                     return super().visit_call(call)
 
         return Annotator().visit(func)
+
+
+def compile_verilog(name="Top"):
+    verilator = util.which("verilator")
+    tmp_dir = util.tempdir().temp_dir
+    cur_dir = path.dirname(path.realpath(path.expanduser(__file__)))
+    hw_dir = path.join(cur_dir, "hardware")
+    vfiles = ["accelerator.v", "wrapper.v"]
+    vfiles = [path.join(hw_dir, f) for f in vfiles]
+    wno = ["BLKANDNBLK", "PINMISSING", "STMTDLY", "WIDTH", "UNOPTFLAT"]
+    wno = ["-Wno-{}".format(w) for w in wno]
+    cmd = []
+    cmd.append(verilator)
+    cmd.append("--cc")
+    cmd.append("--prefix")
+    cmd.append(name)
+    cmd.append("--Mdir")
+    cmd.append(tmp_dir)
+    cmd = cmd + wno + vfiles
+    sp.run(cmd, check=True, stdout=sp.PIPE)
+    cfiles = [
+        "{}__Slow.cpp".format(name),
+        "{}__Syms.cpp".format(name),
+        "{}.cpp".format(name),
+    ]
+    cfiles = [path.join(tmp_dir, f) for f in cfiles]
+    return ["-I", tmp_dir] + cfiles
 
 
 def update_lib(lib):
