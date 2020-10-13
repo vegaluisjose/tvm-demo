@@ -15,4 +15,8 @@ module accelerator(input clock, input reset);
         end
     end
 
+    initial begin
+        $display("Running Verilog...");
+    end
+
 endmodule

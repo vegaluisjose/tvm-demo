@@ -1,7 +1,7 @@
 default: compile_cc
 
 compile_verilog:
-	verilator --cc accelerator.v wrapper.v --prefix Top --Mdir out \
+	verilator --cc verilog/accelerator.v verilog/wrapper.v --prefix Top --Mdir out \
 	-Wno-BLKANDNBLK \
 	-Wno-PINMISSING \
 	-Wno-STMTDLY \
@@ -14,7 +14,6 @@ compile_cc: compile_verilog
 	-I out \
 	-I /usr/local/share/verilator/include \
 	/usr/local/share/verilator/include/verilated.cpp \
-	out/Top__Slow.cpp \
 	out/Top__Syms.cpp \
 	out/Top.cpp \
 	device.cc \

@@ -68,9 +68,11 @@ class WhiteListAnnotator:
 
 def compile_verilog(name="Top"):
     verilator = util.which("verilator")
-    tmp_dir = util.tempdir().temp_dir
+    share_dir = path.realpath(path.join(path.dirname(verilator), "..", "share"))
+    inc_dir = path.join(share_dir, "verilator", "include")
     cur_dir = path.dirname(path.realpath(path.expanduser(__file__)))
     hw_dir = path.join(cur_dir, "hardware")
+    target_dir = util.tempdir().temp_dir
     vfiles = ["accelerator.v", "wrapper.v"]
     vfiles = [path.join(hw_dir, f) for f in vfiles]
     wno = ["BLKANDNBLK", "PINMISSING", "STMTDLY", "WIDTH", "UNOPTFLAT"]
@@ -81,26 +83,41 @@ def compile_verilog(name="Top"):
     cmd.append("--prefix")
     cmd.append(name)
     cmd.append("--Mdir")
-    cmd.append(tmp_dir)
+    cmd.append(target_dir)
     cmd = cmd + wno + vfiles
-    sp.run(cmd, check=True, stdout=sp.PIPE)
-    cfiles = [
-        "{}__Slow.cpp".format(name),
-        "{}__Syms.cpp".format(name),
-        "{}.cpp".format(name),
-    ]
-    cfiles = [path.join(tmp_dir, f) for f in cfiles]
-    return ["-I", tmp_dir] + cfiles
+    try:
+        sp.run(cmd, check=True)
+        cfiles = [
+            "{}__Slow.cpp".format(name),
+            "{}__Syms.cpp".format(name),
+            "{}.cpp".format(name),
+        ]
+        cfiles = [path.join(target_dir, f) for f in cfiles]
+        cfiles.append(path.join(inc_dir, "verilated.cpp"))
+        return ["-I" + target_dir, "-I" + inc_dir] + cfiles
+    except:
+        print("Verilator error")
+        raise
 
 
-def update_lib(lib):
+def update_lib(lib, backend):
     test_dir = path.dirname(path.realpath(path.expanduser(__file__)))
     source_dir = path.join(test_dir, "..", "..", "..")
     contrib_path = path.join(source_dir, "src", "runtime", "contrib")
-    accel_opts = ["-I" + test_dir, path.join(test_dir, "reference.cc")]
+
+    verilog_opts = compile_verilog()
+    verilog_opts += [
+        "-I" + test_dir,
+        "-I" + path.join(test_dir, "hardware"),
+        path.join(test_dir, "hardware", "accel.cc"),
+        path.join(test_dir, "hardware", "device.cc"),
+    ]
+    cc_opts = ["-I" + test_dir, path.join(test_dir, "reference.cc")]
+
+    opts = verilog_opts if backend == "verilator" else cc_opts
 
     kwargs = {}
-    kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path] + accel_opts
+    kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path] + opts
     tmp_path = util.tempdir()
     lib_name = "lib.so"
     lib_path = tmp_path.relpath(lib_name)
@@ -158,11 +175,11 @@ def partition(mod, compiler, op):
     return mod
 
 
-def compile_prog(mod, params=None):
+def compile_prog(mod, params=None, backend=None):
     with relay.build_config(opt_level=3):
         exe = relay.vm.compile(mod, target="llvm", params=params)
         code, lib = exe.save()
-        lib = update_lib(lib)
+        lib = update_lib(lib, backend)
         return runtime.vm.Executable.load_exec(code, lib)
 
 
@@ -191,27 +208,27 @@ def run_mobilenet(exe0, exe1, shape, dtype):
     )
 
 
-def test_bias_add(compiler):
+def test_bias_add(compiler, backend):
     dtype = "int32"
     xshape = (1, 112, 112, 32)
     bshape = (32,)
     mod = build_bias_add_program(xshape, bshape, dtype)
     mod = partition(mod, compiler, "nn.bias_add")
-    exe = compile_prog(mod)
+    exe = compile_prog(mod, params=None, backend=backend)
     run_bias_add(exe, xshape, bshape, dtype)
 
 
-def test_mobilenet(compiler):
+def test_mobilenet(compiler, backend):
     dtype = "int8"
     shape = (1, 224, 224, 3)
     mod0, param = get_mobilenet(shape, dtype)
     mod1 = partition(mod0, compiler, "nn.bias_add")
-    exe0 = compile_prog(mod0, param)
-    exe1 = compile_prog(mod1, param)
+    exe0 = compile_prog(mod0, param, backend=None)
+    exe1 = compile_prog(mod1, param, backend=backend)
     run_mobilenet(exe0, exe1, shape, dtype)
 
 
 if __name__ == "__main__":
     compiler = "ccompiler"
-    test_bias_add(compiler)
-    test_mobilenet(compiler)
+    test_bias_add(compiler, "verilator")
+    test_mobilenet(compiler, "verilator")
