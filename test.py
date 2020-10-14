@@ -69,6 +69,7 @@ class WhiteListAnnotator:
 def compile_verilog(files):
     name = "Top"
     verilator = util.which("verilator")
+    cur_dir = path.dirname(path.realpath(path.expanduser(__file__)))
     share_dir = path.realpath(path.join(path.dirname(verilator), "..", "share"))
     inc_dir = path.join(share_dir, "verilator", "include")
     target_dir = util.tempdir().temp_dir
@@ -91,10 +92,22 @@ def compile_verilog(files):
         ]
         cfiles = [path.join(target_dir, f) for f in cfiles]
         cfiles.append(path.join(inc_dir, "verilated.cpp"))
-        return ["-I" + target_dir, "-I" + inc_dir] + cfiles
+        cfiles.append(path.join(cur_dir, "driver", "verilator_driver.cc"))
+        idirs = [target_dir, inc_dir, path.join(cur_dir, "driver")]
+        idirs = ["-I" + d for d in idirs]
+        return idirs + cfiles
     except:
         print("Verilator error")
         raise
+
+
+def compile_adder():
+    cur_dir = path.dirname(path.realpath(path.expanduser(__file__)))
+    files = ["adder.v", "driver.v"]
+    files = [path.join(cur_dir, "hardware", "adder", f) for f in files]
+    opts = compile_verilog(files)
+    opts.append(path.join(cur_dir, "lib", "adder_lib.cc"))
+    return opts
 
 
 def update_lib(lib, backend):
@@ -102,21 +115,17 @@ def update_lib(lib, backend):
     source_dir = path.join(test_dir, "..", "..", "..")
     contrib_path = path.join(source_dir, "src", "runtime", "contrib")
 
-    files = ["adder.v", "driver.v"]
-    files = [path.join(test_dir, "hardware", "adder", f) for f in files]
+    sim_opts = [path.join(test_dir, "lib", "sim_lib.cc")]
 
-    verilog_opts = compile_verilog(files)
-    verilog_opts += [
-        "-I" + path.join(test_dir, "driver"),
-        path.join(test_dir, "lib", "adder_lib.cc"),
-        path.join(test_dir, "driver", "verilator_driver.cc"),
-    ]
-    cc_opts = [path.join(test_dir, "lib", "sim_lib.cc")]
-
-    opts = verilog_opts if backend == "verilator" else cc_opts
+    opts = compile_adder() if backend == "adder" else sim_opts
 
     kwargs = {}
-    kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path, "-I" + path.join(test_dir, "lib")] + opts
+    kwargs["options"] = [
+        "-O2",
+        "-std=c++14",
+        "-I" + contrib_path,
+        "-I" + path.join(test_dir, "lib"),
+    ] + opts
     tmp_path = util.tempdir()
     lib_name = "lib.so"
     lib_path = tmp_path.relpath(lib_name)
@@ -229,5 +238,7 @@ def test_mobilenet(compiler, backend):
 
 if __name__ == "__main__":
     compiler = "ccompiler"
-    test_bias_add(compiler, "verilator")
-    test_mobilenet(compiler, "verilator")
+    test_bias_add(compiler, "adder")
+    test_mobilenet(compiler, "adder")
+    test_bias_add(compiler, "sim")
+    test_mobilenet(compiler, "sim")
