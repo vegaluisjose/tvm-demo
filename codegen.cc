@@ -41,23 +41,24 @@ using namespace backend;
  * purpose. Only several binary options are covered. Users
  * may need to extend them to cover more operators.
  */
-class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public CodegenCBase {
- public:
-  explicit CodegenC(const std::string& id) { this->ext_func_id_ = id; }
+class CodegenC : public MemoizedExprTranslator<std::vector<Output>>,
+                 public CodegenCBase {
+public:
+  explicit CodegenC(const std::string &id) { this->ext_func_id_ = id; }
 
-  std::vector<Output> VisitExprDefault_(const Object* op) final {
+  std::vector<Output> VisitExprDefault_(const Object *op) final {
     LOG(FATAL) << "C codegen doesn't support: " << op->GetTypeKey();
     return {};
   }
 
-  std::vector<Output> VisitExpr_(const VarNode* node) final {
+  std::vector<Output> VisitExpr_(const VarNode *node) final {
     ext_func_args_.push_back(GetRef<Var>(node));
     Output output;
     output.name = node->name_hint();
     return {output};
   }
 
-  std::vector<Output> VisitExpr_(const TupleNode* node) final {
+  std::vector<Output> VisitExpr_(const TupleNode *node) final {
     std::vector<Output> outs;
     for (auto field : node->fields) {
       auto res = VisitExpr(field);
@@ -67,25 +68,26 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     return outs;
   }
 
-  std::vector<Output> VisitExpr_(const TupleGetItemNode* op) final {
+  std::vector<Output> VisitExpr_(const TupleGetItemNode *op) final {
     auto res = VisitExpr(op->tuple);
     CHECK_GT(res.size(), static_cast<size_t>(op->index));
 
     // Only keep the item we want for the child node.
-    // FIXME(@comaniac): The other items should still be requried for the primary outputs.
+    // FIXME(@comaniac): The other items should still be requried for the
+    // primary outputs.
     return {res[op->index]};
   }
 
-  std::vector<Output> VisitExpr_(const ConstantNode* cn) final {
+  std::vector<Output> VisitExpr_(const ConstantNode *cn) final {
     std::ostringstream decl_stream;
     std::ostringstream buf_stream;
 
     Output output;
     // Get const: static_cast<float*>(gcc_0_consts[0]->data)
     output.name = CreateDataReference(ext_func_id_, const_idx_);
-    const auto* type_node = cn->checked_type().as<TensorTypeNode>();
+    const auto *type_node = cn->checked_type().as<TensorTypeNode>();
     CHECK(type_node);
-    const auto& dtype = GetDtypeString(type_node);
+    const auto &dtype = GetDtypeString(type_node);
 
     // Generate the global variable for needed ndarrays
     if (const_array_name_.empty()) {
@@ -94,7 +96,8 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
       ext_func_body_.insert(ext_func_body_.begin(), checker);
     }
 
-    CHECK(dtype == "float" || dtype == "int") << "Only float and int are supported for now.";
+    CHECK(dtype == "float" || dtype == "int")
+        << "Only float and int are supported for now.";
     output.dtype = dtype;
 
     std::string const_var_name = CreateConstVar(ext_func_id_, const_idx_);
@@ -104,7 +107,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     return {output};
   }
 
-  std::vector<Output> VisitExpr_(const CallNode* call) final {
+  std::vector<Output> VisitExpr_(const CallNode *call) final {
     std::ostringstream macro_stream;
     std::ostringstream decl_stream;
     std::ostringstream buf_stream;
@@ -115,7 +118,8 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     if (IsOp(call, "nn.bias_add")) {
       macro_stream << "CSOURCE_BIAS_ADD(" << func_name;
     } else {
-      macro_stream << "CSOURCE_BINARY_OP_" << call->args.size() << "D(" << func_name << ", ";
+      macro_stream << "CSOURCE_BINARY_OP_" << call->args.size() << "D("
+                   << func_name << ", ";
     }
 
     if (IsOp(call, "add")) {
@@ -133,9 +137,9 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
       macro_stream << ", " << in_shape[i];
     }
 
-    const auto* type_node = call->checked_type().as<TensorTypeNode>();
+    const auto *type_node = call->checked_type().as<TensorTypeNode>();
     CHECK(type_node);
-    const auto& dtype = GetDtypeString(type_node);
+    const auto &dtype = GetDtypeString(type_node);
     macro_stream << ", " << dtype;
 
     macro_stream << ");";
@@ -161,8 +165,8 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     for (size_t i = 0; i < out_shape.size(); ++i) {
       out_size *= out_shape[i];
     }
-    buf_stream << dtype << "* " << out << " = (" << dtype << "*)std::malloc(4 * " << out_size
-               << ");";
+    buf_stream << dtype << "* " << out << " = (" << dtype
+               << "*)std::malloc(4 * " << out_size << ");";
     buf_decl_.push_back(buf_stream.str());
 
     decl_stream << ", " << out << ");";
@@ -184,15 +188,16 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
    *
    * \return The emitted code.
    */
-  std::string JIT(const std::vector<Output>& out) {
+  std::string JIT(const std::vector<Output> &out) {
     // Write function macros
     for (auto decl : func_decl_) {
       code_stream_ << decl << "\n";
     }
-    return JitImpl(ext_func_id_, ext_func_args_, buf_decl_, ext_func_body_, const_array_name_, out);
+    return JitImpl(ext_func_id_, ext_func_args_, buf_decl_, ext_func_body_,
+                   const_array_name_, out);
   }
 
- private:
+private:
   /*! \brief The function id that represents a C source function. */
   std::string ext_func_id_ = "";
   /*! \brief The index of a wrapped C function. */
@@ -218,8 +223,8 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
 };
 
 class CSourceCodegen : public CSourceModuleCodegenBase {
- public:
-  std::pair<std::string, Array<String>> GenCFunc(const Function& func) {
+public:
+  std::pair<std::string, Array<String>> GenCFunc(const Function &func) {
     CHECK(func.defined()) << "Input error: expect a Relay function.";
 
     // Record the external symbol for runtime lookup.
@@ -232,7 +237,7 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
     return {sid, builder.const_vars_};
   }
 
-  runtime::Module CreateCSourceModule(const ObjectRef& ref) override {
+  runtime::Module CreateCSourceModule(const ObjectRef &ref) override {
     // Create headers
     code_stream_ << "#include <cstring>\n";
     code_stream_ << "#include <vector>\n";
@@ -244,7 +249,7 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
     code_stream_ << "using namespace tvm::runtime;\n";
 
     // Append some common macro for operator definition.
-    const char* operator_macro = R"op_macro(
+    const char *operator_macro = R"op_macro(
     #define CSOURCE_BINARY_OP_1D(p_ID_, p_OP_, p_DIM1_, p_DTYPE)       \
       extern "C" void p_ID_(p_DTYPE* a, p_DTYPE* b, p_DTYPE* out) {    \
         for (int64_t i = 0; i < p_DIM1_; ++i) {                        \
@@ -280,30 +285,31 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
     Array<String> variables = std::get<1>(res);
 
     // Create a CSource module
-    const auto* pf = runtime::Registry::Get("runtime.CSourceModuleCreate");
-    CHECK(pf != nullptr) << "Cannot find csource module to create the external runtime module";
+    const auto *pf = runtime::Registry::Get("runtime.CSourceModuleCreate");
+    CHECK(pf != nullptr)
+        << "Cannot find csource module to create the external runtime module";
     return (*pf)(code, "c", sym, variables);
   }
 
- private:
+private:
   std::ostringstream code_stream_;
 };
 
 /*!
- * \brief The external compiler/codegen tool. It takes a Relay expression/module and
- * compile it into a runtime module.
+ * \brief The external compiler/codegen tool. It takes a Relay expression/module
+ * and compile it into a runtime module.
  *
  * The external codegen tool should have been registered similiarly to LLVM,
  * CUDA, etc, under TVM, so the generated code could be packed in a runtime
  * module. This module simplifies code serialization and invocation.
  */
-runtime::Module CCompiler(const ObjectRef& ref) {
+runtime::Module CCompiler(const ObjectRef &ref) {
   CSourceCodegen csource;
   return csource.CreateCSourceModule(ref);
 }
 
 TVM_REGISTER_GLOBAL("relay.ext.ccompiler").set_body_typed(CCompiler);
 
-}  // namespace contrib
-}  // namespace relay
-}  // namespace tvm
+} // namespace contrib
+} // namespace relay
+} // namespace tvm

@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-typedef void* DriverHandle;
+typedef void *DriverHandle;
 
 /* allocate Driver */
 DriverHandle DriverAlloc();
@@ -25,9 +25,8 @@ void DriverReset(DriverHandle handle, int n);
 /* run Driver for n clock cycles */
 void DriverRun(DriverHandle handle, int n);
 
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // Driver_H_
+#endif // Driver_H_
