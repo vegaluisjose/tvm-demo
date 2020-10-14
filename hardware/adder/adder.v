@@ -1,4 +1,4 @@
-module accelerator(input clock, input reset);
+module adder(input clock, input reset);
 
     reg [32-1:0] ra;
     reg [32-1:0] rb;
@@ -16,7 +16,7 @@ module accelerator(input clock, input reset);
     end
 
     initial begin
-        $display("Running Verilog...");
+        $display("Running verilog adder...");
     end
 
 endmodule

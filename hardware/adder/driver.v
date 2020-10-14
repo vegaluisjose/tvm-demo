@@ -1,4 +1,4 @@
-module wrapper (
+module driver (
     input  logic          clock,
     input  logic          reset,
     input  logic [32-1:0] opcode,
@@ -14,9 +14,9 @@ module wrapper (
         logic [31:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = wrapper.dut.ra;
+            tmp[0+:32] = driver.dut.ra;
             tmp[addr*32+:32] = value;
-            wrapper.dut.ra = tmp[0+:32];
+            driver.dut.ra = tmp[0+:32];
         end
     endfunction
 
@@ -25,7 +25,7 @@ module wrapper (
         logic [32-1:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = wrapper.dut.ra;
+            tmp[0+:32] = driver.dut.ra;
             return tmp[addr*32+:32];
         end
     endfunction
@@ -36,9 +36,9 @@ module wrapper (
         logic [31:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = wrapper.dut.rb;
+            tmp[0+:32] = driver.dut.rb;
             tmp[addr*32+:32] = value;
-            wrapper.dut.rb = tmp[0+:32];
+            driver.dut.rb = tmp[0+:32];
         end
     endfunction
 
@@ -47,7 +47,7 @@ module wrapper (
         logic [32-1:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = wrapper.dut.rb;
+            tmp[0+:32] = driver.dut.rb;
             return tmp[addr*32+:32];
         end
     endfunction
@@ -58,9 +58,9 @@ module wrapper (
         logic [31:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = wrapper.dut.ry;
+            tmp[0+:32] = driver.dut.ry;
             tmp[addr*32+:32] = value;
-            wrapper.dut.ry = tmp[0+:32];
+            driver.dut.ry = tmp[0+:32];
         end
     endfunction
 
@@ -69,7 +69,7 @@ module wrapper (
         logic [32-1:0] tmp;
         begin
             tmp[0+:32] = 0;
-            tmp[0+:32] = wrapper.dut.ry;
+            tmp[0+:32] = driver.dut.ry;
             return tmp[addr*32+:32];
         end
     endfunction
@@ -97,6 +97,6 @@ module wrapper (
         endcase
     end
 
-    accelerator dut (.clock(clock), .reset(reset));
+    adder dut (.clock(clock), .reset(reset));
 
 endmodule

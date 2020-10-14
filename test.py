@@ -66,15 +66,12 @@ class WhiteListAnnotator:
         return Annotator().visit(func)
 
 
-def compile_verilog(name="Top"):
+def compile_verilog(files):
+    name = "Top"
     verilator = util.which("verilator")
     share_dir = path.realpath(path.join(path.dirname(verilator), "..", "share"))
     inc_dir = path.join(share_dir, "verilator", "include")
-    cur_dir = path.dirname(path.realpath(path.expanduser(__file__)))
-    hw_dir = path.join(cur_dir, "hardware")
     target_dir = util.tempdir().temp_dir
-    vfiles = ["accelerator.v", "wrapper.v"]
-    vfiles = [path.join(hw_dir, f) for f in vfiles]
     wno = ["BLKANDNBLK", "PINMISSING", "STMTDLY", "WIDTH", "UNOPTFLAT"]
     wno = ["-Wno-{}".format(w) for w in wno]
     cmd = []
@@ -84,7 +81,7 @@ def compile_verilog(name="Top"):
     cmd.append(name)
     cmd.append("--Mdir")
     cmd.append(target_dir)
-    cmd = cmd + wno + vfiles
+    cmd = cmd + wno + files
     try:
         sp.run(cmd, check=True)
         cfiles = [
@@ -105,11 +102,13 @@ def update_lib(lib, backend):
     source_dir = path.join(test_dir, "..", "..", "..")
     contrib_path = path.join(source_dir, "src", "runtime", "contrib")
 
-    verilog_opts = compile_verilog()
+    files = ["adder.v", "driver.v"]
+    files = [path.join(test_dir, "hardware", "adder", f) for f in files]
+
+    verilog_opts = compile_verilog(files)
     verilog_opts += [
         "-I" + test_dir,
         "-I" + path.join(test_dir, "driver"),
-        "-I" + path.join(test_dir, "hardware"),
         path.join(test_dir, "hardware", "accel.cc"),
         path.join(test_dir, "driver", "verilator_driver.cc"),
     ]
