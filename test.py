@@ -108,9 +108,10 @@ def update_lib(lib, backend):
     verilog_opts = compile_verilog()
     verilog_opts += [
         "-I" + test_dir,
+        "-I" + path.join(test_dir, "driver"),
         "-I" + path.join(test_dir, "hardware"),
         path.join(test_dir, "hardware", "accel.cc"),
-        path.join(test_dir, "hardware", "device.cc"),
+        path.join(test_dir, "driver", "verilator_driver.cc"),
     ]
     cc_opts = ["-I" + test_dir, path.join(test_dir, "reference.cc")]
 
