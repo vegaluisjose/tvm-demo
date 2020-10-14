@@ -107,17 +107,16 @@ def update_lib(lib, backend):
 
     verilog_opts = compile_verilog(files)
     verilog_opts += [
-        "-I" + test_dir,
         "-I" + path.join(test_dir, "driver"),
-        path.join(test_dir, "hardware", "accel.cc"),
+        path.join(test_dir, "lib", "adder_lib.cc"),
         path.join(test_dir, "driver", "verilator_driver.cc"),
     ]
-    cc_opts = ["-I" + test_dir, path.join(test_dir, "reference.cc")]
+    cc_opts = [path.join(test_dir, "lib", "sim_lib.cc")]
 
     opts = verilog_opts if backend == "verilator" else cc_opts
 
     kwargs = {}
-    kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path] + opts
+    kwargs["options"] = ["-O2", "-std=c++14", "-I" + contrib_path, "-I" + path.join(test_dir, "lib")] + opts
     tmp_path = util.tempdir()
     lib_name = "lib.so"
     lib_path = tmp_path.relpath(lib_name)

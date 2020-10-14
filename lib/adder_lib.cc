@@ -1,5 +1,5 @@
-#include "accel.h"
 #include "driver.h"
+#include "sim_lib.h"
 #include <stdint.h>
 
 void bias_add(int *a, int *b, int *out, int out_dim, int in_dim) {

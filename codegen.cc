@@ -245,7 +245,7 @@ public:
     code_stream_ << "#include <tvm/runtime/container.h>\n";
     code_stream_ << "#include <tvm/runtime/packed_func.h>\n";
     code_stream_ << "#include <dlpack/dlpack.h>\n";
-    code_stream_ << "#include \"accel.h\"\n";
+    code_stream_ << "#include \"sim_lib.h\"\n";
     code_stream_ << "using namespace tvm::runtime;\n";
 
     // Append some common macro for operator definition.
